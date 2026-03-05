@@ -17,9 +17,7 @@
   ],
   "background": {
     "scripts": [
-      "lib/ics-parser.js",
-      "lib/ics-builder.js",
-      "background.js"
+      "dist/background.js"
     ]
   },
   "message_display_action": {

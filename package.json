@@ -1,0 +1,19 @@
+{
+  "name": "alias-responder",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "npm run build && web-ext build --source-dir . --artifacts-dir dist-xpi --ignore-files \"src/**\" \"test/**\" \"tsconfig.json\" \"build.mjs\" \"node_modules/**\" \"dist-xpi/**\" \".git/**\" \"*.txt\" \"IMPLEMENTATION_PLAN.md\" \"package.json\" \"package-lock.json\"",
+    "dev": "npm run build && web-ext run --source-dir . -t thunderbird"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "web-ext": "^8.4.0"
+  }
+}

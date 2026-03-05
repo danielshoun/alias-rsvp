@@ -2,28 +2,56 @@
  * Lightweight iCalendar (RFC 5545) parser for extracting VEVENT invite data.
  */
 
+export interface ParsedProperty {
+  name: string;
+  params: Record<string, string>;
+  value: string;
+}
+
+export interface Attendee {
+  cn: string;
+  email: string;
+  partstat: string;
+  rsvp: boolean;
+  role: string;
+}
+
+export interface Organizer {
+  cn: string;
+  email: string;
+}
+
+export interface DateWithTZID {
+  value: string;
+  tzid: string;
+}
+
+export type ICSDate = string | DateWithTZID;
+
+export interface ParsedInvite {
+  method: string;
+  uid: string | null;
+  sequence: number;
+  dtstamp: string | null;
+  dtstart: ICSDate | null;
+  dtend: ICSDate | null;
+  summary: string | null;
+  organizer: Organizer | null;
+  attendees: Attendee[];
+}
+
 /**
  * Unfold iCalendar lines. RFC 5545 §3.1: long lines are folded by inserting
  * a CRLF followed by a single whitespace character (space or tab).
  */
-function unfold(text) {
+export function unfold(text: string): string {
   return text.replace(/\r?\n([ \t])/g, "");
 }
 
 /**
  * Parse an iCalendar property line into { name, params, value }.
- *
- * A property line looks like:
- *   ATTENDEE;CN="John Doe";PARTSTAT=NEEDS-ACTION:mailto:john@example.com
- *   DTSTART:20250310T140000Z
- *
- * The name is everything before the first `;` or `:`.
- * Parameters are between `;` separators before the `:`.
- * The value is everything after the `:` that separates params from value.
  */
-function parsePropertyLine(line) {
-  // Find the boundary between params and value.
-  // We need to handle quoted strings in parameters that may contain colons.
+export function parsePropertyLine(line: string): ParsedProperty | null {
   let inQuote = false;
   let paramEnd = -1;
 
@@ -44,9 +72,7 @@ function parsePropertyLine(line) {
   const paramPart = line.substring(0, paramEnd);
   const value = line.substring(paramEnd + 1);
 
-  // Split paramPart into name and individual params.
-  // Again, respect quoted strings which may contain semicolons.
-  const tokens = [];
+  const tokens: string[] = [];
   let current = "";
   inQuote = false;
 
@@ -54,7 +80,6 @@ function parsePropertyLine(line) {
     const ch = paramPart[i];
     if (ch === '"') {
       inQuote = !inQuote;
-      // Don't include the quote character itself in the token value
       continue;
     } else if (ch === ";" && !inQuote) {
       tokens.push(current);
@@ -66,7 +91,7 @@ function parsePropertyLine(line) {
   tokens.push(current);
 
   const name = tokens[0].toUpperCase();
-  const params = {};
+  const params: Record<string, string> = {};
 
   for (let i = 1; i < tokens.length; i++) {
     const eqIdx = tokens[i].indexOf("=");
@@ -82,9 +107,8 @@ function parsePropertyLine(line) {
 
 /**
  * Extract an email address from a mailto: URI value.
- * Handles case-insensitive "mailto:" prefix.
  */
-function extractMailto(value) {
+export function extractMailto(value: string): string {
   const match = value.match(/^mailto:(.+)$/i);
   return match ? match[1] : value;
 }
@@ -92,7 +116,7 @@ function extractMailto(value) {
 /**
  * Parse an ATTENDEE or ORGANIZER property into a structured object.
  */
-function parseAttendee(prop) {
+function parseAttendee(prop: ParsedProperty): Attendee {
   const email = extractMailto(prop.value);
   const cn = prop.params.CN || email;
   const partstat = prop.params.PARTSTAT || "NEEDS-ACTION";
@@ -104,38 +128,21 @@ function parseAttendee(prop) {
 
 /**
  * Parse an ICS text string and return structured invite data.
- *
- * @param {string} icsText - Raw iCalendar text
- * @returns {object|null} Parsed invite object or null if not a valid REQUEST
- *
- * Returned shape:
- * {
- *   method: "REQUEST",
- *   uid: "...",
- *   sequence: 0,
- *   dtstamp: "20250304T120000Z",
- *   dtstart: "20250310T140000Z",
- *   dtend: "20250310T150000Z",
- *   summary: "Team Standup",
- *   organizer: { cn: "Alice", email: "alice@company.com" },
- *   attendees: [
- *     { cn: "Bob", email: "bob@shoun.dev", partstat: "NEEDS-ACTION", rsvp: true, role: "REQ-PARTICIPANT" }
- *   ]
- * }
+ * Returns null if not a valid REQUEST.
  */
-function parseICS(icsText) {
+export function parseICS(icsText: string): ParsedInvite | null {
   const unfolded = unfold(icsText);
   const lines = unfolded.split(/\r?\n/);
 
-  let method = null;
-  let uid = null;
+  let method: string | null = null;
+  let uid: string | null = null;
   let sequence = 0;
-  let dtstamp = null;
-  let dtstart = null;
-  let dtend = null;
-  let summary = null;
-  let organizer = null;
-  const attendees = [];
+  let dtstamp: string | null = null;
+  let dtstart: ICSDate | null = null;
+  let dtend: ICSDate | null = null;
+  let summary: string | null = null;
+  let organizer: Organizer | null = null;
+  const attendees: Attendee[] = [];
 
   let inVEvent = false;
 
@@ -154,12 +161,10 @@ function parseICS(icsText) {
     const prop = parsePropertyLine(line);
     if (!prop) continue;
 
-    // METHOD is a VCALENDAR-level property (outside VEVENT)
     if (prop.name === "METHOD" && !inVEvent) {
       method = prop.value.toUpperCase();
     }
 
-    // The remaining fields we care about are inside VEVENT
     if (!inVEvent) continue;
 
     switch (prop.name) {
@@ -212,9 +217,4 @@ function parseICS(icsText) {
     organizer,
     attendees,
   };
-}
-
-// Export for use as ES module in the extension and for testing
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = { parseICS, parsePropertyLine, unfold, extractMailto };
 }
