@@ -1,7 +1,3 @@
-/**
- * ICS Reply Builder — constructs a METHOD:REPLY VCALENDAR per RFC 5546 (iTIP).
- */
-
 import type { ICSDate, Organizer } from "./ics-parser";
 
 /**

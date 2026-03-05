@@ -1,5 +1,3 @@
-/** Minimal type declarations for Thunderbird WebExtension APIs used by this extension. */
-
 declare namespace browser {
   namespace messageDisplay {
     function getDisplayedMessage(
@@ -58,6 +56,9 @@ declare namespace browser {
       function get(
         key: string
       ): Promise<Record<string, unknown>>;
+      function set(
+        items: Record<string, unknown>
+      ): Promise<void>;
     }
   }
 

@@ -1,7 +1,3 @@
-/**
- * Background script for Alias-Safe RSVP.
- */
-
 import { parseICS, type Attendee, type ParsedInvite } from "./lib/ics-parser";
 import { buildReplyICS } from "./lib/ics-builder";
 
@@ -10,7 +6,7 @@ interface Config {
 }
 
 const DEFAULT_CONFIG: Config = {
-  aliasDomain: "shoun.dev",
+  aliasDomain: "simplelogin.com",
 };
 
 async function getConfig(): Promise<Config> {

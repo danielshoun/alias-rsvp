@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "Alias-Safe RSVP",
+  "name": "Alias RSVP",
   "version": "1.0.0",
   "description": "Respond to calendar invites using your alias address instead of your real email.",
   "browser_specific_settings": {
@@ -19,6 +19,9 @@
     "scripts": [
       "background.js"
     ]
+  },
+  "options_ui": {
+    "page": "options/options.html"
   },
   "message_display_action": {
     "default_title": "Alias RSVP",

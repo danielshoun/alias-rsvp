@@ -1,7 +1,3 @@
-/**
- * Lightweight iCalendar (RFC 5545) parser for extracting VEVENT invite data.
- */
-
 export interface ParsedProperty {
   name: string;
   params: Record<string, string>;

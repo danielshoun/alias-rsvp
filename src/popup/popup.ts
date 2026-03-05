@@ -1,7 +1,3 @@
-/**
- * Popup script for Alias-Safe RSVP.
- */
-
 import type { Attendee, ICSDate, ParsedInvite } from "../lib/ics-parser";
 
 const loadingEl = document.getElementById("loading")!;

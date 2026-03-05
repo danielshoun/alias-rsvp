@@ -6,6 +6,8 @@ await mkdir("dist", { recursive: true });
 
 await cp("manifest.json", "dist/manifest.json");
 await cp("popup/popup.html", "dist/popup/popup.html", { recursive: true });
+await mkdir("dist/options", { recursive: true });
+await cp("options/options.html", "dist/options/options.html");
 await mkdir("dist/experiment", { recursive: true });
 await cp("experiment/schema.json", "dist/experiment/schema.json");
 
@@ -21,6 +23,14 @@ await build({
   entryPoints: ["src/popup/popup.ts"],
   bundle: true,
   outfile: "dist/popup/popup.js",
+  format: "iife",
+  target: "firefox128",
+});
+
+await build({
+  entryPoints: ["src/options/options.ts"],
+  bundle: true,
+  outfile: "dist/options/options.js",
   format: "iife",
   target: "firefox128",
 });
