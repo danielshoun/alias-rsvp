@@ -85,11 +85,5 @@ declare namespace browser {
     }): Promise<Tab[]>;
   }
 
-  namespace calendarReply {
-    function sendRawMessage(
-      identityId: string,
-      to: string,
-      mimeContent: string
-    ): Promise<void>;
-  }
+  const calendarReply: CalendarReplyAPI;
 }

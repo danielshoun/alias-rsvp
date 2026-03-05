@@ -5,7 +5,7 @@ var calendarReply = class extends ExtensionCommon.ExtensionAPI {
     );
 
     return {
-      calendarReply: {
+      calendarReply: <CalendarReplyAPI>{
         /**
          * Send a pre-composed MIME message directly via SMTP.
          * This bypasses the compose engine entirely, preserving our
