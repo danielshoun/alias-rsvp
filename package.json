@@ -1,19 +1,19 @@
 {
-  "name": "alias-responder",
-  "version": "1.0.0",
+  "name": "alias-rsvp",
+  "license": "MPL-2.0",
+  "version": "0.1",
   "private": true,
   "scripts": {
     "build": "node build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package": "npm run build && web-ext build --source-dir dist --artifacts-dir dist-xpi",
-    "dev": "npm run build && web-ext run --source-dir dist -t thunderbird"
+    "package": "npm run build && web-ext build --source-dir dist --artifacts-dir dist-xpi"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0",
+    "esbuild": "^0.27.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0",
     "web-ext": "^8.4.0"
   }
 }
