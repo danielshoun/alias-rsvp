@@ -1,12 +1,7 @@
-"use strict";
-
-/* exported calendarReply */
-/* global ExtensionCommon, Cc, Ci, IOUtils, Services, ChromeUtils */
-
 var calendarReply = class extends ExtensionCommon.ExtensionAPI {
-  getAPI(context) {
+  getAPI(context: unknown) {
     const { MailServices } = ChromeUtils.importESModule(
-      "resource:///modules/MailServices.sys.mjs"
+      "resource:///modules/MailServices.sys.mjs",
     );
 
     return {
@@ -17,10 +12,14 @@ var calendarReply = class extends ExtensionCommon.ExtensionAPI {
          * exact MIME structure (including Content-Type parameters
          * like method=REPLY that the compose engine strips).
          */
-        async sendRawMessage(identityId, to, mimeContent) {
+        async sendRawMessage(
+          identityId: string,
+          to: string,
+          mimeContent: string,
+        ): Promise<boolean> {
           // Find the identity by key
           const identity = MailServices.accounts.allIdentities.find(
-            (id) => id.key === identityId
+            (id: nsIMsgIdentity) => id.key === identityId,
           );
           if (!identity) {
             throw new Error("Identity not found: " + identityId);
@@ -47,27 +46,27 @@ var calendarReply = class extends ExtensionCommon.ExtensionAPI {
           // Set up compFields for the SMTP envelope
           const compFields = Cc[
             "@mozilla.org/messengercompose/composefields;1"
-          ].createInstance(Ci.nsIMsgCompFields);
+          ].createInstance(Ci.nsIMsgCompFields) as nsIMsgCompFields;
           compFields.from = identity.email;
           compFields.to = to;
 
           // Send the message file
           const msgSend = Cc[
             "@mozilla.org/messengercompose/send;1"
-          ].createInstance(Ci.nsIMsgSend);
+          ].createInstance(Ci.nsIMsgSend) as nsIMsgSend;
 
-          return new Promise((resolve, reject) => {
+          return new Promise<boolean>((resolve, reject) => {
             const copyListener = {
               QueryInterface: ChromeUtils.generateQI([
                 "nsIMsgCopyServiceListener",
               ]),
               onStartCopy() {},
-              onProgress(progress, progressMax) {},
-              setMessageKey(key) {},
+              onProgress(_progress: number, _progressMax: number) {},
+              setMessageKey(_key: number) {},
               getMessageId() {
                 return null;
               },
-              onStopCopy(status) {
+              onStopCopy(status: number) {
                 if (status === 0) {
                   resolve(true);
                 } else {
@@ -78,18 +77,27 @@ var calendarReply = class extends ExtensionCommon.ExtensionAPI {
 
             const sendListener = {
               QueryInterface: ChromeUtils.generateQI(["nsIMsgSendListener"]),
-              onStartSending(msgID, msgSize) {},
-              onSendProgress(msgID, progress, progressMax) {},
-              onStatus(msgID, msg) {},
-              onStopSending(msgID, status, msg, returnFile) {
+              onStartSending(_msgID: string, _msgSize: number) {},
+              onSendProgress(
+                _msgID: string,
+                _progress: number,
+                _progressMax: number,
+              ) {},
+              onStatus(_msgID: string, _msg: string) {},
+              onStopSending(
+                _msgID: string,
+                status: number,
+                _msg: string,
+                _returnFile: nsIFile | null,
+              ) {
                 if (status !== 0) {
                   reject(new Error("SMTP send failed: " + status));
                 } else {
                   resolve(true);
                 }
               },
-              onGetDraftFolderURI(msgID, folderURI) {},
-              onSendNotPerformed(msgID, status) {
+              onGetDraftFolderURI(_msgID: string, _folderURI: string) {},
+              onSendNotPerformed(_msgID: string, status: number) {
                 reject(new Error("Send not performed: " + status));
               },
             };
@@ -106,18 +114,28 @@ var calendarReply = class extends ExtensionCommon.ExtensionAPI {
                 null, // msgToReplace
                 sendListener,
                 null, // statusFeedback
-                "" // password
+                "", // password
               );
 
               // Fallback: resolve after 10s if neither listener fires
-              let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+              const timer = Cc["@mozilla.org/timer;1"].createInstance(
+                Ci.nsITimer,
+              ) as nsITimer;
               timer.initWithCallback(
-                { notify() { resolve(true); } },
+                {
+                  notify() {
+                    resolve(true);
+                  },
+                },
                 10000,
-                Ci.nsITimer.TYPE_ONE_SHOT
+                Ci.nsITimer.TYPE_ONE_SHOT,
               );
             } catch (ex) {
-              reject(new Error("sendMessageFile failed: " + ex.message));
+              reject(
+                new Error(
+                  "sendMessageFile failed: " + (ex as Error).message,
+                ),
+              );
             }
           });
         },
