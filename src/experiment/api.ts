@@ -56,25 +56,6 @@ var calendarReply = class extends ExtensionCommon.ExtensionAPI {
           ].createInstance(Ci.nsIMsgSend) as nsIMsgSend;
 
           return new Promise<boolean>((resolve, reject) => {
-            const copyListener = {
-              QueryInterface: ChromeUtils.generateQI([
-                "nsIMsgCopyServiceListener",
-              ]),
-              onStartCopy() {},
-              onProgress(_progress: number, _progressMax: number) {},
-              setMessageKey(_key: number) {},
-              getMessageId() {
-                return null;
-              },
-              onStopCopy(status: number) {
-                if (status === 0) {
-                  resolve(true);
-                } else {
-                  reject(new Error("Send failed with status: " + status));
-                }
-              },
-            };
-
             const sendListener = {
               QueryInterface: ChromeUtils.generateQI(["nsIMsgSendListener"]),
               onStartSending(_msgID: string, _msgSize: number) {},
