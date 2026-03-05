@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      width: 320px;
+      padding: 12px;
+    }
+
+    #loading {
+      text-align: center;
+      padding: 16px 0;
+      color: #666;
+    }
+
+    #error {
+      display: none;
+      padding: 12px;
+      background: #fef3f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      color: #991b1b;
+      text-align: center;
+    }
+
+    #invite {
+      display: none;
+    }
+
+    .event-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+
+    .detail {
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .detail .label {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .alias-badge {
+      margin-top: 10px;
+      padding: 6px 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #1e40af;
+      word-break: break-all;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .buttons button {
+      flex: 1;
+      padding: 8px 4px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: #fff;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .buttons button:hover {
+      background: #f9fafb;
+    }
+
+    .btn-accept {
+      color: #166534;
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+    .btn-accept:hover {
+      background: #dcfce7 !important;
+    }
+
+    .btn-tentative {
+      color: #854d0e;
+      border-color: #fde68a;
+      background: #fefce8;
+    }
+    .btn-tentative:hover {
+      background: #fef9c3 !important;
+    }
+
+    .btn-decline {
+      color: #991b1b;
+      border-color: #fca5a5;
+      background: #fef2f2;
+    }
+    .btn-decline:hover {
+      background: #fee2e2 !important;
+    }
+
+    .buttons button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    #status {
+      display: none;
+      text-align: center;
+      margin-top: 10px;
+      color: #666;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading invite...</div>
+
+  <div id="error"></div>
+
+  <div id="invite">
+    <div class="event-title" id="summary"></div>
+    <div class="detail"><span class="label">When:</span> <span id="when"></span></div>
+    <div class="detail"><span class="label">Organizer:</span> <span id="organizer"></span></div>
+    <div class="alias-badge">Responding as: <strong id="alias"></strong></div>
+    <div class="buttons">
+      <button class="btn-accept" data-partstat="ACCEPTED">Accept</button>
+      <button class="btn-tentative" data-partstat="TENTATIVE">Tentative</button>
+      <button class="btn-decline" data-partstat="DECLINED">Decline</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

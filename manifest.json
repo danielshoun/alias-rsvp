@@ -1,0 +1,39 @@
+{
+  "manifest_version": 2,
+  "name": "Alias-Safe RSVP",
+  "version": "1.0.0",
+  "description": "Respond to calendar invites using your alias address instead of your real email.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "alias-rsvp@shoun.dev",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "messagesRead",
+    "accountsRead",
+    "compose",
+    "storage"
+  ],
+  "background": {
+    "scripts": [
+      "lib/ics-parser.js",
+      "lib/ics-builder.js",
+      "background.js"
+    ]
+  },
+  "message_display_action": {
+    "default_title": "Alias RSVP",
+    "default_popup": "popup/popup.html"
+  },
+  "experiment_apis": {
+    "calendarReply": {
+      "schema": "experiment/schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "paths": [["calendarReply"]],
+        "script": "experiment/api.js"
+      }
+    }
+  }
+}

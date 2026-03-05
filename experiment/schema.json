@@ -1,0 +1,30 @@
+[
+  {
+    "namespace": "calendarReply",
+    "functions": [
+      {
+        "name": "sendRawMessage",
+        "type": "function",
+        "async": true,
+        "description": "Send a pre-composed MIME message directly via SMTP, bypassing the compose engine entirely. This preserves the exact MIME structure including Content-Type parameters.",
+        "parameters": [
+          {
+            "name": "identityId",
+            "type": "string",
+            "description": "The identity key to send from"
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "description": "The recipient email address"
+          },
+          {
+            "name": "mimeContent",
+            "type": "string",
+            "description": "The complete RFC 5322 MIME message"
+          }
+        ]
+      }
+    ]
+  }
+]
