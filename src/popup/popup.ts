@@ -1,4 +1,5 @@
 import type { Attendee, ICSDate, ParsedInvite } from "../lib/ics-parser";
+import { getErrorMessage } from "../lib/errors";
 
 const loadingEl = document.getElementById("loading")!;
 const errorEl = document.getElementById("error")!;
@@ -54,9 +55,19 @@ function showError(message: string): void {
   errorEl.textContent = message;
 }
 
+function showSubmitError(message: string): void {
+  errorEl.style.display = "block";
+  errorEl.textContent = message;
+}
+
+function clearError(): void {
+  errorEl.style.display = "none";
+  errorEl.textContent = "";
+}
+
 function showInvite(invite: ParsedInvite, alias: Attendee): void {
   loadingEl.style.display = "none";
-  errorEl.style.display = "none";
+  clearError();
   inviteEl.style.display = "block";
 
   summaryEl.textContent = invite.summary || "Calendar Event";
@@ -78,17 +89,17 @@ async function init(): Promise<void> {
     }
 
     const tabId = tabs[0].id;
-    const result = (await browser.runtime.sendMessage({
+    const result = await browser.runtime.sendMessage({
       type: "getInvite",
       tabId: tabId,
-    })) as { invite?: ParsedInvite; alias?: Attendee; error?: string };
+    });
 
-    if (result.error) {
+    if (!result.ok) {
       showError(result.error);
       return;
     }
 
-    showInvite(result.invite!, result.alias!);
+    showInvite(result.value.invite, result.value.alias);
 
     for (const btn of buttons) {
       btn.addEventListener("click", () =>
@@ -96,25 +107,46 @@ async function init(): Promise<void> {
       );
     }
   } catch (err) {
-    showError("Error: " + (err as Error).message);
+    showError("Error: " + getErrorMessage(err, "Failed to load invitation."));
   }
 }
 
 async function handleRSVP(tabId: number, partstat: string): Promise<void> {
+  clearError();
   for (const btn of buttons) {
     btn.disabled = true;
   }
   statusEl.style.display = "block";
   statusEl.textContent = "Sending response...";
 
-  browser.runtime.sendMessage({
-    type: "rsvp",
-    tabId: tabId,
-    partstat: partstat,
-  });
+  try {
+    const result = await browser.runtime.sendMessage({
+      type: "rsvp",
+      tabId: tabId,
+      partstat: partstat,
+    });
 
-  statusEl.textContent = "Response sent!";
-  setTimeout(() => window.close(), 1200);
+    if (!result.ok) {
+      for (const btn of buttons) {
+        btn.disabled = false;
+      }
+      statusEl.style.display = "none";
+      showSubmitError("Could not send response: " + result.error);
+      return;
+    }
+
+    statusEl.textContent = "Response sent!";
+    setTimeout(() => window.close(), 1200);
+  } catch (err) {
+    for (const btn of buttons) {
+      btn.disabled = false;
+    }
+    statusEl.style.display = "none";
+    showSubmitError(
+      "Could not send response: " +
+        getErrorMessage(err, "Failed to send response.")
+    );
+  }
 }
 
 init();

@@ -1,5 +1,7 @@
-import { parseICS, type Attendee, type ParsedInvite } from "./lib/ics-parser";
+import { parseICS, type Attendee } from "./lib/ics-parser";
 import { buildReplyICS } from "./lib/ics-builder";
+import { getErrorMessage } from "./lib/errors";
+import type { InviteResult, RSVPResult } from "./lib/runtime";
 
 interface Config {
   aliasDomain: string;
@@ -64,24 +66,17 @@ function partstatToVerb(partstat: string): string {
   }
 }
 
-interface InviteResult {
-  invite?: ParsedInvite;
-  alias?: Attendee;
-  replyTo?: string;
-  error?: string;
-}
-
 async function getInviteFromActiveMessage(tabId: number): Promise<InviteResult> {
   const config = await getConfig();
 
   const message = await browser.messageDisplay.getDisplayedMessage(tabId);
   if (!message) {
-    return { error: "No message is currently displayed." };
+    return { ok: false, error: "No message is currently displayed." };
   }
 
   const full = await browser.messages.getFull(message.id);
   if (!full) {
-    return { error: "Could not read message content." };
+    return { ok: false, error: "Could not read message content." };
   }
 
   const calPart = findCalendarPart(full);
@@ -106,22 +101,33 @@ async function getInviteFromActiveMessage(tabId: number): Promise<InviteResult> 
   }
 
   if (!icsText) {
-    return { error: "No calendar invite found in this message." };
+    return { ok: false, error: "No calendar invite found in this message." };
   }
 
   const invite = parseICS(icsText);
   if (!invite) {
-    return { error: "This is not a calendar invitation (METHOD:REQUEST)." };
+    return {
+      ok: false,
+      error: "This is not a calendar invitation (METHOD:REQUEST).",
+    };
   }
 
   const alias = findAliasAttendee(invite.attendees, config.aliasDomain);
   if (!alias) {
     return {
+      ok: false,
       error: `No attendee found matching @${config.aliasDomain} in this invite.`,
     };
   }
 
-  return { invite, alias, replyTo: message.author };
+  return {
+    ok: true,
+    value: {
+      invite,
+      alias,
+      replyTo: message.author,
+    },
+  };
 }
 
 function wrapBase64(str: string): string {
@@ -177,83 +183,88 @@ function buildMIMEMessage({
   ].join("\r\n");
 }
 
-interface RSVPResult {
-  success?: boolean;
-  error?: string;
-}
-
 async function handleRSVP(
   tabId: number,
   partstat: string
 ): Promise<RSVPResult> {
-  const result = await getInviteFromActiveMessage(tabId);
-  if (result.error || !result.invite || !result.alias) {
-    return { error: result.error || "Unknown error" };
-  }
-
-  const { invite, alias, replyTo } = result;
-
-  const replyICS = buildReplyICS({
-    uid: invite.uid!,
-    sequence: invite.sequence,
-    organizer: invite.organizer!,
-    attendeeEmail: alias.email,
-    attendeeCN: alias.cn,
-    partstat: partstat,
-    dtstart: invite.dtstart!,
-    dtend: invite.dtend,
-    summary: invite.summary,
-  });
-
-  const prefix = partstatToSubjectPrefix(partstat);
-  const verb = partstatToVerb(partstat);
-  const summary = invite.summary || "Calendar Event";
-  const subject = `${prefix}: ${summary}`;
-  const bodyText = `${alias.cn} has ${verb} the invitation to: ${summary}`;
-
-  const accounts = await browser.accounts.list();
-  let identity: browser.accounts.MailIdentity | null = null;
-
-  for (const account of accounts) {
-    if (account.identities && account.identities.length > 0) {
-      identity = account.identities[0];
-      break;
+  try {
+    const result = await getInviteFromActiveMessage(tabId);
+    if (!result.ok) {
+      return { ok: false, error: result.error };
     }
+
+    const { invite, alias, replyTo } = result.value;
+
+    const replyICS = buildReplyICS({
+      uid: invite.uid!,
+      sequence: invite.sequence,
+      organizer: invite.organizer!,
+      attendeeEmail: alias.email,
+      attendeeCN: alias.cn,
+      partstat: partstat,
+      dtstart: invite.dtstart!,
+      dtend: invite.dtend,
+      summary: invite.summary,
+    });
+
+    const prefix = partstatToSubjectPrefix(partstat);
+    const verb = partstatToVerb(partstat);
+    const summary = invite.summary || "Calendar Event";
+    const subject = `${prefix}: ${summary}`;
+    const bodyText = `${alias.cn} has ${verb} the invitation to: ${summary}`;
+
+    const accounts = await browser.accounts.list();
+    let identity: browser.accounts.MailIdentity | null = null;
+
+    for (const account of accounts) {
+      if (account.identities && account.identities.length > 0) {
+        identity = account.identities[0];
+        break;
+      }
+    }
+
+    if (!identity) {
+      return {
+        ok: false,
+        error: "No email identity configured in Thunderbird.",
+      };
+    }
+
+    const fromEmail = identity.email;
+    const fromName = identity.name;
+    const fromHeader = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
+
+    const sendTo = replyTo || invite.organizer!.email;
+
+    const mimeMessage = buildMIMEMessage({
+      from: fromHeader,
+      to: sendTo,
+      subject: subject,
+      bodyText: bodyText,
+      icsContent: replyICS,
+    });
+
+    await browser.calendarReply.sendRawMessage(
+      identity.id,
+      sendTo,
+      mimeMessage
+    );
+
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: getErrorMessage(err, "Failed to send response."),
+    };
   }
-
-  if (!identity) {
-    return { error: "No email identity configured in Thunderbird." };
-  }
-
-  const fromEmail = identity.email;
-  const fromName = identity.name;
-  const fromHeader = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
-
-  const sendTo = replyTo || invite.organizer!.email;
-
-  const mimeMessage = buildMIMEMessage({
-    from: fromHeader,
-    to: sendTo,
-    subject: subject,
-    bodyText: bodyText,
-    icsContent: replyICS,
-  });
-
-  await browser.calendarReply.sendRawMessage(
-    identity.id,
-    sendTo,
-    mimeMessage
-  );
-
-  return { success: true };
 }
 
 browser.runtime.onMessage.addListener((message) => {
   if (message.type === "getInvite") {
-    return getInviteFromActiveMessage(message.tabId as number);
+    return getInviteFromActiveMessage(message.tabId);
   }
 
   if (message.type === "rsvp") {
-    return handleRSVP(message.tabId as number, message.partstat as string);
+    return handleRSVP(message.tabId, message.partstat);
   }
 });
